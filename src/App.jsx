@@ -45,7 +45,6 @@ function App() {
 			});
 			setUserAddress(wallet[0]);
 			console.log(wallet);
-
 			console.log(wallet);
 			console.log('Wallet connected');
 
@@ -55,6 +54,10 @@ function App() {
 				status: 'success',
 				duration: 5000,
 				isClosable: true,
+			});
+			// Listen for account changes
+			window.ethereum.on('accountsChanged', (accounts) => {
+				console.log('Account changed:', accounts[0]);
 			});
 		} catch (error) {
 			console.log('Failed to connect wallet');
@@ -69,29 +72,48 @@ function App() {
 	};
 
 	async function getNFTsForOwner() {
-		setIsLoading(true);
-		const config = {
-			apiKey: import.meta.env.VITE_API_KEY,
-			network: Network.ETH_MAINNET,
-		};
+		if (userAddress === '') {
+			setShowError(true);
+		} else {
+			setShowError(false);
+			setIsLoading(true);
+			try {
+				const config = {
+					apiKey: import.meta.env.VITE_API_KEY,
+					network: Network.ETH_MAINNET,
+				};
 
-		const alchemy = new Alchemy(config);
-		const data = await alchemy.nft.getNftsForOwner(userAddress);
-		setResults(data);
+				const alchemy = new Alchemy(config);
+				const data = await alchemy.nft.getNftsForOwner(userAddress);
+				setResults(data);
 
-		const tokenDataPromises = [];
+				const tokenDataPromises = [];
 
-		for (let i = 0; i < data.ownedNfts.length; i++) {
-			const tokenData = alchemy.nft.getNftMetadata(
-				data.ownedNfts[i].contract.address,
-				data.ownedNfts[i].tokenId,
-			);
-			tokenDataPromises.push(tokenData);
+				for (let i = 0; i < data.ownedNfts.length; i++) {
+					const tokenData = alchemy.nft.getNftMetadata(
+						data.ownedNfts[i].contract.address,
+						data.ownedNfts[i].tokenId,
+					);
+					tokenDataPromises.push(tokenData);
+				}
+
+				setTokenDataObjects(await Promise.all(tokenDataPromises));
+				setHasQueried(true);
+				setTimeout(() => {
+					setIsLoading(false);
+				}, 1000);
+			} catch (error) {
+				console.log('Failed to fetch data:', error);
+				setIsLoading(false);
+				toast({
+					title: 'An error occurred',
+					description: ' Alchemy API Request Failed',
+					status: 'error',
+					duration: 5000,
+					isClosable: true,
+				});
+			}
 		}
-
-		setTokenDataObjects(await Promise.all(tokenDataPromises));
-		setHasQueried(true);
-		setIsLoading(false);
 	}
 	return (
 		<ChakraProvider theme={customTheme}>
@@ -114,7 +136,7 @@ function App() {
 							backgroundColor: '#8a9ce2',
 							color: 'white',
 						}}>
-						{!userAddress ? 'Connected' : 'Connect Wallet'}
+						{userAddress !== '' ? 'Connected' : 'Connect Wallet'}
 					</Button>
 				</Box>
 				<Center flexDirection={'column'} h={'75vh'}>
@@ -144,7 +166,8 @@ function App() {
 								<Input
 									color='black'
 									textAlign='center'
-									// p={4}
+									onChange={(e) => setUserAddress(e.target.value)}
+									p={4}
 									bgColor='white'
 									fontSize={24}
 									value={userAddress}
@@ -207,35 +230,68 @@ function App() {
 								spacingX={9}
 								spacingY={8}
 								minChildWidth='230px'>
-								{results.ownedNfts.map((e, i) => {
-									return (
-										<Card
-											bg='#19376D'
-											borderRadius={20}
-											p='4'
-											color='white'
-											w={{ sm: '100%', md: '300px', lg: '300px' }}
-											key={e.id}>
-											<Box display='flex' alignItems='center'>
+								{results.ownedNfts.length === 0 ? (
+									<Box>
+										<Text color='white' fontSize={48} textAlign={'center'}>
+											you have no NFT
+										</Text>
+									</Box>
+								) : (
+									results.ownedNfts.map((e, i) => {
+										return (
+											<Box position='relative'>
 												<Image
-													src={
-														tokenDataObjects[i]?.rawMetadata?.image ??
-														'https://via.placeholder.com/200'
-													}
-													alt={'Image'}
+													src={tokenDataObjects[i].rawMetadata.image}
+													alt='Example Image'
+													w='321px'
+													h='321px'
+													borderRadius={20}
+													cursor={'pointer'}
+													fallbackSrc='https://via.placeholder.com/321'
 												/>
-												<Box>
-													<Box>
-														<b>Name:</b>{' '}
-														{tokenDataObjects[i].title?.length === 0
-															? 'No Name'
-															: tokenDataObjects[i].title}
-													</Box>
-												</Box>
+												<Text
+													position='absolute'
+													bottom='0'
+													color='white'
+													fontWeight='bold'
+													textTransform='uppercase'
+													letterSpacing='wide'
+													fontSize='sm'
+													width='100%'
+													padding='1rem'>
+													{tokenDataObjects[i].title.length === 0
+														? 'No Name'
+														: tokenDataObjects[i].title}
+												</Text>
 											</Box>
-										</Card>
-									);
-								})}
+											// <Card
+											// 	bg='#19376D'
+											// 	borderRadius={20}
+											// 	p='4'
+											// 	color='white'
+											// 	w={{ sm: '100%', md: '300px', lg: '300px' }}
+											// 	key={e.id}>
+											// 	<Box display='flex' alignItems='center'>
+											// 		<Image
+											// 			src={
+											// 				tokenDataObjects[i]?.rawMetadata?.image ??
+											// 				'https://via.placeholder.com/200'
+											// 			}
+											// 			alt={'Image'}
+											// 		/>
+											// 		<Box>
+											// 			<Box>
+											// 				<b>Name:</b>{' '}
+											// 				{tokenDataObjects[i].title?.length === 0
+											// 					? 'No Name'
+											// 					: tokenDataObjects[i].title}
+											// 			</Box>
+											// 		</Box>
+											// 	</Box>
+											// </Card>
+										);
+									})
+								)}
 							</SimpleGrid>
 						</Box>
 					) : (
