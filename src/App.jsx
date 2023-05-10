@@ -43,7 +43,9 @@ function App() {
 			const wallet = await window.ethereum.request({
 				method: 'eth_requestAccounts',
 			});
-			setUserAddress(wallet);
+			setUserAddress(wallet[0]);
+			console.log(wallet);
+
 			console.log(wallet);
 			console.log('Wallet connected');
 
@@ -112,7 +114,7 @@ function App() {
 							backgroundColor: '#8a9ce2',
 							color: 'white',
 						}}>
-						Connect Wallet
+						{!userAddress ? 'Connected' : 'Connect Wallet'}
 					</Button>
 				</Box>
 				<Center flexDirection={'column'} h={'75vh'}>
