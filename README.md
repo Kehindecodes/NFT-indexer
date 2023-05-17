@@ -1,7 +1,5 @@
 # NFT Indexer
 
-![NFT Indexer](https://github.com/your-username/nft-indexer/blob/main/logo.png)
-
 NFT Indexer is an application that utilizes the Alchemy SDK rigged to Alchemy's Enhanced APIs to display all non-fungible tokens (NFTs) associated with a specific Ethereum address. This project aims to provide users with an easy way to view their NFT collection and offers various features and improvements to enhance the user experience.
 
 ## Features
